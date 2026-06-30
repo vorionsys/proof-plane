@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/proof-plane",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Immutable dual-hash audit trail for AI agent governance decisions (SHA-256 + SHA3-256 chain, Ed25519 signatures)",
   "keywords": [
     "vorion",
@@ -74,9 +74,15 @@
     "pg": "^8.11.0"
   },
   "peerDependenciesMeta": {
-    "express": { "optional": true },
-    "fastify": { "optional": true },
-    "pg": { "optional": true }
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
