@@ -1,0 +1,571 @@
+openapi: 3.1.0
+info:
+  title: Vorion Proof Plane API
+  description: |
+    REST API for the Vorion audit system providing immutable proof events,
+    hash chain verification, and cryptographic signatures for AI agent operations.
+  version: 1.0.0
+  contact:
+    name: Vorion Team
+    url: https://github.com/vorionsys/vorion
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: /v1
+    description: API v1
+
+tags:
+  - name: Proof Events
+    description: Submit and retrieve proof events
+  - name: Verification
+    description: Verify event integrity and chain validity
+  - name: Chain
+    description: Event chain operations and traces
+
+paths:
+  /proof:
+    post:
+      operationId: submitProof
+      summary: Submit a proof event
+      description: |
+        Create a new proof event in the immutable audit trail.
+        The event is cryptographically hashed and chained to the previous event.
+      tags:
+        - Proof Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitProofRequest'
+      responses:
+        '201':
+          description: Proof event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofEventResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /proof/{id}:
+    get:
+      operationId: getProof
+      summary: Get proof event by ID
+      description: Retrieve a single proof event by its unique identifier.
+      tags:
+        - Proof Events
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Proof event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofEventDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /proof/verify/{id}:
+    get:
+      operationId: verifyProof
+      summary: Verify a proof event
+      description: |
+        Verify the cryptographic integrity of a single proof event.
+        Checks hash validity and optionally signature validity.
+      tags:
+        - Verification
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEventResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /proof/chain/{correlationId}:
+    get:
+      operationId: getChain
+      summary: Get event trace by correlation ID
+      description: |
+        Retrieve all proof events associated with a correlation ID,
+        representing a complete audit trail for a single operation.
+      tags:
+        - Chain
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Event trace found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainTraceResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /proof/chain/verify:
+    post:
+      operationId: verifyChain
+      summary: Verify chain integrity
+      description: |
+        Verify the cryptographic integrity of the entire event chain.
+        Checks hash validity, chain links, and optionally signatures.
+      tags:
+        - Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyChainRequest'
+      responses:
+        '200':
+          description: Chain verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyChainResponse'
+
+  /proof/stats:
+    get:
+      operationId: getStats
+      summary: Get event statistics
+      description: Retrieve aggregate statistics about proof events.
+      tags:
+        - Proof Events
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+  /proof/latest:
+    get:
+      operationId: getLatest
+      summary: Get most recent event
+      description: Retrieve the most recently recorded proof event.
+      tags:
+        - Proof Events
+      responses:
+        '200':
+          description: Latest event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofEventDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    EventId:
+      name: id
+      in: path
+      required: true
+      description: Proof event UUID
+      schema:
+        type: string
+        format: uuid
+
+    CorrelationId:
+      name: correlationId
+      in: path
+      required: true
+      description: Correlation ID for event trace
+      schema:
+        type: string
+        format: uuid
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of results (1-1000)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+    Offset:
+      name: offset
+      in: query
+      description: Number of results to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    SubmitProofRequest:
+      type: object
+      required:
+        - eventType
+        - correlationId
+        - payload
+      properties:
+        eventType:
+          type: string
+          enum:
+            - INTENT_RECEIVED
+            - DECISION_MADE
+            - EXECUTION_STARTED
+            - EXECUTION_COMPLETED
+            - EXECUTION_FAILED
+            - TRUST_DELTA
+            - COMPONENT_UPDATED
+            - POLICY_APPLIED
+          description: Type of proof event
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID linking related events
+        agentId:
+          type: string
+          format: uuid
+          description: Optional agent identifier
+        payload:
+          type: object
+          additionalProperties: true
+          description: Event-specific payload data
+
+    ProofEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Unique event identifier
+        eventType:
+          type: string
+          description: Type of proof event
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID
+        agentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Agent identifier
+        payload:
+          type: object
+          additionalProperties: true
+          description: Event payload
+        eventHash:
+          type: string
+          description: SHA-256 hash of event content
+        previousHash:
+          type: string
+          nullable: true
+          description: Hash of previous event in chain
+        occurredAt:
+          type: string
+          format: date-time
+          description: When the event occurred
+        recordedAt:
+          type: string
+          format: date-time
+          description: When the event was recorded
+        signedBy:
+          type: string
+          nullable: true
+          description: Service that signed the event
+        signature:
+          type: string
+          nullable: true
+          description: Ed25519 digital signature
+        shadowMode:
+          type: string
+          enum: [production, shadow, testnet, verified]
+          nullable: true
+          description: Shadow mode status
+
+    ProofEventResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            eventId:
+              type: string
+              format: uuid
+            eventType:
+              type: string
+            correlationId:
+              type: string
+              format: uuid
+            eventHash:
+              type: string
+            previousHash:
+              type: string
+              nullable: true
+            occurredAt:
+              type: string
+              format: date-time
+            recordedAt:
+              type: string
+              format: date-time
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ProofEventDetailResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ProofEvent'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    VerifyEventResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            eventId:
+              type: string
+              format: uuid
+            verification:
+              type: object
+              properties:
+                hashValid:
+                  type: boolean
+                  description: Whether the event hash is valid
+                computedHash:
+                  type: string
+                  description: Computed hash of event content
+                storedHash:
+                  type: string
+                  description: Stored hash in event
+                signatureValid:
+                  type: boolean
+                  nullable: true
+                  description: Whether the signature is valid (null if unsigned)
+                signatureError:
+                  type: string
+                  nullable: true
+                  description: Signature verification error
+                signer:
+                  type: string
+                  nullable: true
+                  description: Signer identity
+                verifiedAt:
+                  type: string
+                  format: date-time
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ChainTraceResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            correlationId:
+              type: string
+              format: uuid
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProofEvent'
+            total:
+              type: integer
+              description: Total number of events in trace
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    VerifyChainRequest:
+      type: object
+      properties:
+        fromEventId:
+          type: string
+          format: uuid
+          description: Start verification from this event
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          description: Maximum events to verify
+
+    VerifyChainResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            chain:
+              type: object
+              properties:
+                valid:
+                  type: boolean
+                  description: Whether chain integrity is valid
+                verifiedCount:
+                  type: integer
+                  description: Number of events verified
+                totalEvents:
+                  type: integer
+                  description: Total events in chain
+                firstEventId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                lastEventId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                brokenAtEventId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Event ID where chain broke
+                brokenAtIndex:
+                  type: integer
+                  nullable: true
+                  description: Index where chain broke
+                error:
+                  type: string
+                  nullable: true
+                  description: Error description
+            signatures:
+              type: object
+              nullable: true
+              properties:
+                totalEvents:
+                  type: integer
+                validCount:
+                  type: integer
+                invalidCount:
+                  type: integer
+                unsignedCount:
+                  type: integer
+                success:
+                  type: boolean
+            fullyVerified:
+              type: boolean
+              description: Chain and signatures both valid
+            verifiedAt:
+              type: string
+              format: date-time
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    StatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalEvents:
+              type: integer
+              description: Total number of events
+            eventsByType:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Count by event type
+            oldestEvent:
+              type: string
+              format: date-time
+              nullable: true
+            newestEvent:
+              type: string
+              format: date-time
+              nullable: true
+            shadowModeStats:
+              type: object
+              additionalProperties:
+                type: integer
+              nullable: true
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ResponseMeta:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: Request identifier for correlation
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+
+    Pagination:
+      type: object
+      properties:
+        offset:
+          type: integer
+        limit:
+          type: integer
+        hasMore:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error details
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: EVENT_NOT_FOUND
+              message: Proof event not found
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed
+              details:
+                - path: ["eventType"]
+                  message: Required
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: An unexpected error occurred

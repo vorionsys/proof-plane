@@ -1,0 +1,108 @@
+{
+  "name": "@vorionsys/proof-plane",
+  "version": "0.1.4",
+  "description": "Immutable dual-hash audit trail for AI agent governance decisions (SHA-256 + SHA3-256 chain, Ed25519 signatures)",
+  "keywords": [
+    "vorion",
+    "basis",
+    "proof-plane",
+    "audit-trail",
+    "hash-chain",
+    "dual-hash",
+    "sha256",
+    "sha3",
+    "ed25519",
+    "immutable",
+    "tamper-detection",
+    "cryptographic",
+    "ai",
+    "agent",
+    "governance",
+    "compliance"
+  ],
+  "license": "Apache-2.0",
+  "author": "Vorion LLC",
+  "homepage": "https://vorion.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorionsys/proof-plane.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vorionsys/proof-plane/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./events": {
+      "types": "./dist/events/index.d.ts",
+      "import": "./dist/events/index.js"
+    },
+    "./proof-plane": {
+      "types": "./dist/proof-plane/index.d.ts",
+      "import": "./dist/proof-plane/index.js"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "openapi.yaml",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@vorionsys/contracts": "^1.1.2",
+    "kafkajs": "^2.2.4",
+    "uuid": "^11.0.4",
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "express": "^4.18.0 || ^5.0.0",
+    "fastify": "^5.0.0",
+    "pg": "^8.11.0"
+  },
+  "peerDependenciesMeta": {
+    "express": { "optional": true },
+    "fastify": { "optional": true },
+    "pg": { "optional": true }
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.0",
+    "@types/uuid": "^10.0.0",
+    "express": "^5.0.0",
+    "fastify": "^5.0.0",
+    "pg": "^8.13.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "clean": "rm -rf dist",
+    "changeset:version": "changeset version && npm install --package-lock-only",
+    "changeset:release": "changeset publish"
+  }
+}
